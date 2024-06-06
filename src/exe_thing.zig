@@ -1,5 +1,5 @@
 const std = @import("std");
-const lib_that_calls_c = @import("lib_that_calls_c.zig");
+const lib_that_calls_c = @import("clibLinkage");
 
 test "call adds two" {
     const result = lib_that_calls_c.add_four(-1);

@@ -6,7 +6,7 @@ pub fn build(b: *std.Build) void {
 
     // library that links against the C code
     //////////////////////////////////////////
-    const lib = b.addStaticLibrary(
+    const c_library_example = b.addStaticLibrary(
         .{
             .name = "cliblinkage",
             .root_source_file = .{ .path = "src/lib_that_calls_c.zig" },
@@ -14,15 +14,17 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
         }
     );
-    lib.addCSourceFile(
-        .{ 
-            .file = .{ .path = "src/foo.c" },
-            .flags = &[_][]const u8{
+    {
+        c_library_example.addCSourceFile(
+            .{ 
+                .file = .{ .path = "src/foo.c" },
+                .flags = &[_][]const u8{
             },
         }
-    );
-    lib.addIncludePath(.{ .path = "src" });
-    b.installArtifact(lib);
+        );
+        c_library_example.addIncludePath(.{ .path = "src" });
+        b.installArtifact(c_library_example);
+    }
 
     // executable that links against the zig library - which ALSO needs link
     // information for the C code (??) even though it doesn't directly call or
@@ -35,22 +37,10 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
         }
     );
-    main_tests.linkLibrary(lib);
-
-    // need to be enabled or the build fails -- I hoped that `linkLibrary`
-    // would make this unnecessary
-    ///////////////////////////////////////////////////////////////////////////
-    {
-        main_tests.addCSourceFile(
-            .{ 
-                .file = .{ .path = "src/foo.c" },
-                .flags = &[_][]const u8{
-            },
-        }
-        );
-        main_tests.addIncludePath(.{ .path = "src" });
-    }
-    ///////////////////////////////////////////////////////////////////////////
+    main_tests.root_module.addImport(
+        "clibLinkage",
+        &c_library_example.root_module
+    );
 
     const run_main_tests = b.addRunArtifact(main_tests);
     const test_step = b.step("test", "Run library tests");
